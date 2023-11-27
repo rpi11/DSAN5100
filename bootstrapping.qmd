@@ -12,7 +12,96 @@ library(tidyverse)
 
 ```{r}
 
+ridersIn <- read.csv("cleaned/cleaned_10_28_2023.csv")
 
+# view all rail lines
+unique(ridersIn$routes)
 ```
 
 
+```{r}
+riders2 <- ridersIn
+# declare rail lines
+railLines <- c("1", "2", "3", "4", "5", "6", "7", "SIR", "A", "B", "C", "D", "E", "F", "G", "J", "L", "M", "N", "Q", "R", "S", "W", "Z")
+
+for(i in 1:length(railLines)) {
+    tempvec <- as.numeric(str_detect(riders2$routes, railLines[i]))
+    print(sum(tempvec))
+    riders2 <- cbind(riders2, tempvec)
+    colnames(riders2)[ncol(riders2)] <- railLines[i] 
+}
+
+head(riders2)
+```
+
+All routes except staten island railroad have at least 25 stations, smallest is 26, so we can use 25 for our bootstrap sample size.
+
+We can do, for each train, 50,000 sample mean differences.
+```{r}
+
+railLines <- railLines[railLines != "SIR"]
+
+riders2 <- spread(riders2, key = payment_method, value = ridership)
+riders2 <- riders2 %>% 
+    group_by(station_complex_id) %>% 
+    mutate(pctOmny = sum(omny,na.rm = TRUE) / (sum(omny,na.rm = TRUE) + sum(metrocard,na.rm = TRUE) ))
+
+riders2 <- riders2 %>% filter(!is.na(omny))
+
+riders2 <- riders2[,c(1,10:36)]
+
+#lower <- vector(mode = "numeric", length = length(railLines))
+#upper <- vector(mode = "numeric", length = length(railLines))
+
+
+lower <- c()
+upper <- c()
+
+for(i in 1:length(railLines)) {
+    raildat <- riders2$pctOmny[riders2[,railLines[i]] == 1]
+    popdat <- riders2$pctOmny[riders2[,railLines[i]] == 0]
+    #head(popdat)
+    returnProps <- c()
+    #print(head(raildat))
+    #print(head(popdat))
+    print(railLines[i])
+
+    for(i in 1:50000) {
+        railmean <- mean(sample(raildat, 25, replace = TRUE), na.rm = TRUE)
+        popmean <- mean(sample(popdat, 25, replace = TRUE), na.rm = TRUE)
+        
+        returnProps <- c(returnProps, railmean - popmean)
+    }
+
+    #print(quantile(returnProps, 0.025)[[1]])
+    #print(head(returnProps)) 
+
+    lower <- c(lower, quantile(returnProps, 0.025)[[1]] )
+    #print(head(lower))
+    #print(quantile(returnProps, 0.975))
+    upper <-c(upper,quantile(returnProps, 0.975)[[1]])
+}   
+
+results <- cbind(railLines, as.numeric(lower), as.numeric(upper))
+
+```
+
+Plotting the results
+```{r}
+
+results2 <- data.frame(results)
+index <- c(1:nrow(results2))
+results2 <- cbind(results2, index)
+
+
+theme_update(text = element_text(size=20))
+
+ggplot(results2, aes(color = railLines)) + 
+geom_linerange(aes(x = railLines, ymin = lower,
+                                ymax = upper),
+                            lwd = 1, position = position_dodge(width = 1/2)) +
+geom_hline(aes(yintercept = 0), lty = 2, size = 1) + 
+coord_flip() + theme_bw(base_size = 20) + labs(y = "Difference in Ridership from Other Lines", x = "Rail Line", color = "Rail Line", title = "OMNY Use Proportion Differences by Rail Line")
+
+
+```
