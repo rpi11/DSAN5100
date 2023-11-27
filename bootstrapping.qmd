@@ -101,7 +101,7 @@ geom_linerange(aes(x = railLines, ymin = lower,
                                 ymax = upper),
                             lwd = 1, position = position_dodge(width = 1/2)) +
 geom_hline(aes(yintercept = 0), lty = 2, size = 1) + 
-coord_flip() + theme_bw(base_size = 20) + labs(y = "Difference in Ridership from Other Lines", x = "Rail Line", color = "Rail Line", title = "OMNY Use Proportion Differences by Rail Line")
+coord_flip() + theme_bw(base_size = 20) + labs(y = "Difference in Proportion of OMNY Ridership from Other Lines", x = "Rail Line", color = "Rail Line", title = "OMNY Use Proportion Differences by Rail Line")
 
 
 ```
