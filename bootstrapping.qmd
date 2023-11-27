@@ -1,0 +1,18 @@
+---
+title: "Bootstrapping"
+format: html
+---
+
+
+```{r}
+library(tidyverse)
+
+```
+
+
+```{r}
+
+
+```
+
+
